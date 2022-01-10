@@ -64,8 +64,7 @@ async function execute(message, args, serverQueue) {
     }
 
     // create song from youtube link
-    const songs = await getYoutubeUrls(args[0]);
-    console.log(songs);
+    const songs = await createSongsFromUrl(args[0]);
     const audioPlayer = voice.createAudioPlayer();
 
     // create a new song queue for guild
@@ -74,7 +73,6 @@ async function execute(message, args, serverQueue) {
             textChannel: message.channel,
             voiceChannel: voiceChannel,
             audioPlayer: audioPlayer,
-            connection: null,
             songs: [],
             currentSong: null,
         };
@@ -85,8 +83,7 @@ async function execute(message, args, serverQueue) {
         });
 
         try {
-            const connection = await connectToChannel(voiceChannel);
-            queueConstruct.connection = connection;
+            await connectToChannel(voiceChannel);
             play(message.guild, queueConstruct.songs.shift());
         } catch (err) {
             console.log(err);
@@ -107,11 +104,11 @@ async function playSkip(message, args, serverQueue) {
     }
     if (serverQueue) {
         serverQueue.songs = [];
-        const songs = await getYoutubeUrls(args[0]);
+        const songs = await createSongsFromUrl(args[0]);
         songs.forEach(song => {
-            queueConstruct.songs.push(song);
+            serverQueue.songs.push(song);
         });
-        play(message.guild, queueConstruct.songs.shift());
+        play(message.guild, serverQueue.songs.shift());
         return message.channel.send(`Now playing: **${song.title}**`);
     } else {
         execute(message, args, serverQueue);
@@ -158,11 +155,13 @@ function showQueue(message, serverQueue) {
 
 // play current song in queue
 async function play(guild, song) {
-    console.log(song)
     const serverQueue = queue.get(guild.id);
     serverQueue.currentSong = song;
+
+    const connection = voice.getVoiceConnection(guild.id);
+
     if (!song) {
-        serverQueue.connection.destroy();
+        connection.destroy();
         queue.delete(guild.id);
         return;
     }
@@ -170,19 +169,27 @@ async function play(guild, song) {
     try {
         const resource = song.getAudioResource();
         serverQueue.audioPlayer.play(resource);
-        serverQueue.connection.subscribe(serverQueue.audioPlayer);
+        const subscription = connection.subscribe(serverQueue.audioPlayer);
         
-        serverQueue.textChannel.send(`Now playing: **${song.title}**`);
-        await playerEnd(serverQueue.audioPlayer).then(() => {
-            play(guild, serverQueue.songs.shift());
-        });
+        if (subscription) {
+            console.log(resource);
+            serverQueue.textChannel.send(`Now playing: **${song.title}**`);
+
+            serverQueue.audioPlayer.on('error', error => {
+                console.error(`Error: ${error.message} with resource ${error.resource}`);
+            });
+            serverQueue.audioPlayer.on(voice.AudioPlayerStatus.Idle, (oldState, newState) => {
+                play(guild, serverQueue.songs.shift());
+            })
+        }
     } catch (err) {
+        console.error(err);
         play(guild, serverQueue.songs.shift());
     }
 }
 
 // helper function for getting youtube video urls
-async function getYoutubeUrls(rawUrl) {
+async function createSongsFromUrl(rawUrl) {
     const url = new URL(rawUrl);
     let songs = []
     if (url.pathname === '/watch') {
@@ -205,37 +212,19 @@ async function connectToChannel(channel) {
         guildId: channel.guild.id,
         adapterCreator: channel.guild.voiceAdapterCreator,
     });
-    try {
-        await  voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 30e3);
-        return connection;
-    } catch (err) {
-        if (connection) connection.destroy();
-        throw err;
-    }
-}
-
-// helper function for waiting until audio player is finished
-async function playerEnd(player) {
-    const awaitIdle = new Promise((resolve, reject) => {
-        player.on('stateChange', (oldState, newState) => {
-            if (oldState.status === 'playing' && newState.status === 'idle') {
-                resolve('idle');
-            }
-        });
-    });
-    return awaitIdle;
+    return await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 30e3);
 }
 
 // song module
 var Song = {
     from: async function (url) {
-        const songInfo = await ytdl.getInfo(url);
-        this.title = songInfo.videoDetails.title;
-        this.url = songInfo.videoDetails.video_url;
+        this.songInfo = await ytdl.getInfo(url);
+        this.title = this.songInfo.videoDetails.title;
+        this.url = this.songInfo.videoDetails.video_url;
         return this;
     },
     getAudioResource: function() {
-        const stream = ytdl(this.url, { filter: 'audioonly' });
+        const stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly' }, { quality: '94' });
         resource = voice.createAudioResource(stream, { inlineVolume: true });
         resource.volume.setVolume(0.2);
         return resource;
