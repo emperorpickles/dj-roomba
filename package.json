@@ -14,7 +14,7 @@
     "ffmpeg": "^0.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "libsodium-wrappers": "^0.7.9",
-    "ytdl-core": "^4.9.2",
+    "ytdl-core": "^4.10.0",
     "ytpl": "^2.2.3"
   }
 }
