@@ -5,4 +5,4 @@ steps:
   entrypoint: /bin/sh
   args:
   - -c
-  - gcloud compute ssh bot-host --zone us-east1-b --tunnel-through-iap --command \'/bin/sh /home/cnkitzmann/dj-roomba/pull.sh\'
+  - gcloud compute ssh bot-host --zone us-east1-b --tunnel-through-iap --command '/bin/sh /home/cnkitzmann/dj-roomba/pull.sh'
