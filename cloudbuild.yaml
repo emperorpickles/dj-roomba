@@ -1,8 +1,8 @@
 
 steps:
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: gcr.io/cloud-builders/gcloud
   id: Update discordbots server
   entrypoint: /bin/sh
   args:
-  - '-c'
-  - 'gcloud compute ssh bot-host --zone us-east1-b --tunnel-through-iap --command=\"/bin/sh /home/cnkitzmann/dj-roomba/pull.sh\"'
+  - -c
+  - gcloud compute ssh bot-host --zone us-east1-b --tunnel-through-iap --command \'/bin/sh /home/cnkitzmann/dj-roomba/pull.sh\'
