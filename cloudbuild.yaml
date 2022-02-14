@@ -7,4 +7,4 @@ steps:
   - '-c'
   - |
     set -x && \
-    gcloud compute ssh bot-host --zone=us-east1-b --command='/bin/sh /home/cnkitzmann/dj-roomba/pull.sh
+    gcloud compute ssh bot-host --zone=us-east1-b --command='/bin/sh /home/cnkitzmann/dj-roomba/pull.sh'
