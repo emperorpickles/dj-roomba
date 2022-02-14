@@ -1,0 +1,10 @@
+
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Update discordbots server
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    set -x && \
+    gcloud compute ssh bot-host --zone=us-east1-b --command='/bin/sh /home/cnkitzmann/dj-roomba/pull.sh
