@@ -1,6 +1,8 @@
 'use strict'
 
 const fs = require('fs');
+const path = require('path');
+const cwd = path.join(__dirname, '..');
 
 const dotEnvExists = fs.existsSync('.env');
 if (dotEnvExists) {
@@ -12,14 +14,17 @@ const {Storage} = require('@google-cloud/storage');
 const storage = new Storage();
 
 const bucketName = `envvars-discordbots`;
+const fileName = '.env';
+const destFileName = path.join(cwd, '.env');
+
+async function downloadFile() {
+    const options = {
+        destination: destFileName,
+    };
+
+    await storage.bucket(bucketName).file(fileName).download(options);
+    console.log(`gs://${bucketName}/${fileName} downloaded to ${destFileName}`);
+}
+
 console.log(`Downloading .env from bucket "${bucketName}"`);
-storage
-    .bucket(bucketName)
-    .file('.env')
-    .download({ destination: '.env' })
-    .then(() => {
-        console.info('getEnv.js: .env downloaded successfully');
-    })
-    .catch(err => {
-        console.error(`getEnv.js: There was an error: ${JSON.stringify(err, undefined, 2)}`);
-    });
+downloadFile().catch(console.error);
