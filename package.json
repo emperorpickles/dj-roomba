@@ -6,7 +6,7 @@
     "node": "16.x"
   },
   "scripts": {
-    "prestart": "node getEnv",
+    "prestart": "node getEnv.js",
     "start": "node index.js"
   },
   "dependencies": {
