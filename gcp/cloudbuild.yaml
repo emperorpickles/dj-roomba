@@ -1,0 +1,8 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'us-east1-docker.pkg.dev/$PROJECT_ID/discord-bots/djroomba', '.' ]
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'push', 'us-east1-docker.pkg.dev/$PROJECT_ID/discord-bots/djroomba' ]
+- name: 'gcr.io/google.com/cloudsdktools/cloud-sdk'
+  entrypoint: 'bash'
+  args: [ '-c', 'gcloud compute instances update-container dj-roomba-host --zone us-east1-b' ]

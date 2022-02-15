@@ -1,6 +1,0 @@
-steps:
-# - name: 'gcr.io/cloud-builders/docker'
-#   args: [ 'build', '-t', 'gcr.io/discordbots-340622/dj-roomba', '.' ]
-- name: 'gcr.io/google.com/cloudsdktools/cloud-sdk'
-  entrypoint: 'bash'
-  args: [ '-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy' ]
