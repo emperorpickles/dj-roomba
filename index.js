@@ -11,6 +11,19 @@ const queue = new Map();
 const messages = new Map();
 
 
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+    res.send('online');
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}...`);
+});
+
+
 client.once('ready', () => {
     console.log(`Ready! Logged in as ${client.user.username}`);
 });

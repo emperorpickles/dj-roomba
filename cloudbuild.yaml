@@ -1,8 +1,6 @@
-
 steps:
-- name: gcr.io/cloud-builders/gcloud
-  id: Update discordbots server
-  entrypoint: /bin/sh
-  args:
-  - -c
-  - gcloud compute ssh bot-host --zone us-east1-b --tunnel-through-iap --command '/bin/sh /home/cnkitzmann/dj-roomba/pull.sh'
+# - name: 'gcr.io/cloud-builders/docker'
+#   args: [ 'build', '-t', 'gcr.io/discordbots-340622/dj-roomba', '.' ]
+- name: 'gcr.io/google.com/cloudsdktools/cloud-sdk'
+  entrypoint: 'bash'
+  args: [ '-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy' ]
