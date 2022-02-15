@@ -8,11 +8,12 @@ if (dotEnvExists) {
     process.exit();
 }
 
-const gcs = require('@google-cloud/storage');
+const {Storage} = require('@google-cloud/storage');
+const storage = new Storage();
 
 const bucketName = `envvars-discordbots`;
 console.log(`Downloading .env from bucket "${bucketName}"`);
-gcs
+storage
     .bucket(bucketName)
     .file('.env')
     .download({ destination: '.env' })
