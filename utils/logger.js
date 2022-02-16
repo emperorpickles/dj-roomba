@@ -22,7 +22,6 @@ const enumerateErrorFormat = winston.format(info => {
 });
 
 const logConfiguration = {
-    level: 'info',
     format: winston.format.combine(
         enumerateErrorFormat(),
         winston.format.json()

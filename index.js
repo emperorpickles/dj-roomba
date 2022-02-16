@@ -229,8 +229,8 @@ async function clean(message) {
     const messages = await collection.get();
 
     await Promise.all(messages.docs.map(async (doc) => {
-        const data = JSON.parse(doc.data()['data']);
-        const msg = await client.channels.cache.get(data.channelId).messages.fetch(data.id)
+        const data = doc.data();
+        const msg = await client.channels.cache.get(data.channelId).messages.fetch(doc.id)
             .catch(err => { logger.error(err); return null });
         if (msg) {
             await msg.delete().catch(err => { logger.error(err) });
@@ -296,14 +296,20 @@ async function sendMessage(message, text) {
 
     try {
         const inMessage = guildCollection.collection('messages').doc(message.id);
-        await inMessage.set({data: JSON.stringify(message)});
+        await inMessage.set({
+            channelId: message.channelId,
+            content: message.content,
+        });
     } catch (err) {
         logger.error(err);
     }
     try {
         const sentMessage = await message.channel.send(text);
         const outMessage = guildCollection.collection('messages').doc(sentMessage.id);
-        await outMessage.set({data: JSON.stringify(sentMessage)});
+        await outMessage.set({
+            channelId: sentMessage.channelId,
+            content: sentMessage.content,
+        });
     } catch (err) {
         logger.error(err);
     }
