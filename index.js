@@ -2,6 +2,8 @@ const Discord = require('discord.js');
 const voice = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
+const Firestore = require('@google-cloud/firestore');
+
 const logger = require('./utils/logger');
 
 require('dotenv').config();
@@ -10,6 +12,7 @@ const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD
 
 const queue = new Map();
 const messages = new Map();
+
 
 // simple express server to respond to health checks
 const express = require('express');
@@ -23,6 +26,12 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     logger.info(`Server listening on port ${PORT}...`);
 });
+
+
+// establish Firestore db connection
+const db = new Firestore({
+    projectId: 'discordbots-340622',
+})
 
 
 // announce once the bot is online
@@ -285,6 +294,23 @@ async function sendMessage(message, text) {
         const sentMessage = await message.channel.send(text);
         messages.set(message.guild.id, { messages: [sentMessage, message] });
     }
+
+    const inMessage = db.collection('messages').doc(message.id);
+    await inMessage.set({
+        guildId: message.guildId,
+        channelId: message.channelId,
+        author: message.author,
+        content: message.content,
+    });
+
+    const sentMessage = await message.channel.send(text);
+    const outMessage = db.collection('messages').doc(message.id);
+    await outMessage.set({
+        guildId: sentMessage.guildId,
+        channelId: sentMessage.channelId,
+        author: sentMessage.author,
+        content: sentMessage.content,
+    });
 }
 
 // song module
