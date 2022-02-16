@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const voice = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
+const logger = require('./utils/logger');
 
 require('dotenv').config();
 
@@ -10,7 +11,7 @@ const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD
 const queue = new Map();
 const messages = new Map();
 
-
+// simple express server to respond to health checks
 const express = require('express');
 const app = express();
 
@@ -20,12 +21,13 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}...`);
+    logger.info(`Server listening on port ${PORT}...`);
 });
 
 
+// announce once the bot is online
 client.once('ready', () => {
-    console.log(`Ready! Logged in as ${client.user.username}`);
+    logger.info(`Ready! Logged in as ${client.user.username}`);
 });
 
 // handles commands to bot
@@ -94,8 +96,8 @@ async function execute(message, args, serverQueue) {
 
         audioPlayer.on('error', error => {
             // TODO - improve error logging
-            console.error(`ERROR: ${error.message} with resource ${error.resource}`);
-            console.error(error);
+            logger.error(`ERROR: ${error.message} with resource ${error.resource}`);
+            logger.error(error);
         });
 
         const queueConstruct = {
@@ -113,7 +115,7 @@ async function execute(message, args, serverQueue) {
             await connectToChannel(voiceChannel);
             await play(message.guild, queueConstruct.songs.shift());
         } catch (err) {
-            console.log(err);
+            logger.error(err);
             queue.delete(message.guild.id);
         }
     }
@@ -204,7 +206,7 @@ async function play(guild, song) {
         return;
     }
 
-    console.log(`Now playing: ${song.title}`);
+    logger.info(`Now playing: ${song.title}`);
 
     try {
         const resource = song.getAudioResource();
@@ -219,7 +221,8 @@ async function play(guild, song) {
             });
         }
     } catch (err) {
-        console.error(err);
+        logger.error(`ERROR: ${err.message} with song ${song.title}`);
+        logger.error(err);
         await play(guild, serverQueue.songs.shift());
     }
 }
@@ -231,7 +234,7 @@ async function clean(message) {
     if (serverMessages) {
         await Promise.all(serverMessages.messages.map(async (item) => {
             item.delete()
-            .catch(console.error);
+            .catch(logger.error);
         }));
         await message.delete();
         serverMessages.messages = [];
