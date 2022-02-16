@@ -11,21 +11,6 @@ require('dotenv').config();
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_VOICE_STATES'] });
 
 const queue = new Map();
-const messages = new Map();
-
-
-// simple express server to respond to health checks
-const express = require('express');
-const app = express();
-
-app.get('/', (req, res) => {
-    res.send('online');
-});
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    logger.info(`Server listening on port ${PORT}...`);
-});
 
 
 // establish Firestore db connection
@@ -238,18 +223,39 @@ async function play(guild, song) {
 
 // delete all messages related to the bot
 async function clean(message) {
-    const serverMessages = messages.get(message.guild.id);
+    await sendMessage(message, 'Cleaning up all of my messages!');
+    
+    const collection = db.collection('guilds').doc(message.guildId).collection('messages');
+    const messages = await collection.get();
 
-    if (serverMessages) {
-        await Promise.all(serverMessages.messages.map(async (item) => {
-            item.delete()
-            .catch(logger.error);
-        }));
-        await message.delete();
-        serverMessages.messages = [];
-    }
+    await Promise.all(messages.docs.map(async (doc) => {
+        const data = JSON.parse(doc.data()['data']);
+        const msg = await client.channels.cache.get(data.channelId).messages.fetch(data.id)
+            .catch(err => { logger.error(err); return null });
+        if (msg) {
+            await msg.delete().catch(err => { logger.error(err) });
+        }
+    }));
+
+    await new Promise((resolve, reject) => {
+        deleteBatch(collection, resolve).catch(reject);
+    });
 }
 
+
+// firestore batch delete function
+async function deleteBatch(query, resolve) {
+    const snapshot = await query.get();
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    resolve();
+    return;
+}
 
 // helper function for getting youtube video urls
 async function createSongsFromUrl(rawUrl) {
@@ -285,32 +291,22 @@ async function connectToChannel(channel) {
 
 // helper function for creating and logging sent messages
 async function sendMessage(message, text) {
-    const serverMessages = messages.get(message.guild.id);
+    const guildCollection = db.collection('guilds').doc(message.guildId);
+    await guildCollection.set({ name: message.guild.name });
 
-    if (serverMessages) {
-        const sentMessage = await message.channel.send(text);
-        serverMessages.messages.push(sentMessage, message);
-    } else {
-        const sentMessage = await message.channel.send(text);
-        messages.set(message.guild.id, { messages: [sentMessage, message] });
+    try {
+        const inMessage = guildCollection.collection('messages').doc(message.id);
+        await inMessage.set({data: JSON.stringify(message)});
+    } catch (err) {
+        logger.error(err);
     }
-
-    const inMessage = db.collection('messages').doc(message.id);
-    await inMessage.set({
-        guildId: message.guildId,
-        channelId: message.channelId,
-        author: message.author,
-        content: message.content,
-    });
-
-    const sentMessage = await message.channel.send(text);
-    const outMessage = db.collection('messages').doc(message.id);
-    await outMessage.set({
-        guildId: sentMessage.guildId,
-        channelId: sentMessage.channelId,
-        author: sentMessage.author,
-        content: sentMessage.content,
-    });
+    try {
+        const sentMessage = await message.channel.send(text);
+        const outMessage = guildCollection.collection('messages').doc(sentMessage.id);
+        await outMessage.set({data: JSON.stringify(sentMessage)});
+    } catch (err) {
+        logger.error(err);
+    }
 }
 
 // song module
