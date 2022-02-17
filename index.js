@@ -25,11 +25,6 @@ const db = new Firestore({
 // announce once the bot is online
 client.once('ready', () => {
     logger.info(`Ready! Logged in as ${client.user.username}`);
-    try {
-        throw new Error('test error');
-    } catch (err) {
-        logger.error(err);
-    }
 });
 
 // handles commands to bot
