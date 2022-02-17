@@ -3,10 +3,13 @@ const voice = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const Firestore = require('@google-cloud/firestore');
+const logger = require('./utils/bunyan');
 
-const logger = require('./utils/logger');
-
+// environment variables
 require('dotenv').config();
+const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const PREFIX = process.env.PREFIX || '!';
 
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_VOICE_STATES'] });
 
@@ -15,19 +18,24 @@ const queue = new Map();
 
 // establish Firestore db connection
 const db = new Firestore({
-    projectId: 'discordbots-340622',
+    projectId: GCP_PROJECT_ID,
 })
 
 
 // announce once the bot is online
 client.once('ready', () => {
     logger.info(`Ready! Logged in as ${client.user.username}`);
+    try {
+        throw new Error('test error');
+    } catch (err) {
+        logger.error(err);
+    }
 });
 
 // handles commands to bot
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
-    if (!message.content.startsWith(process.env.PREFIX)) return;
+    if (!message.content.startsWith(PREFIX)) return;
 
     const serverQueue = queue.get(message.guild.id);
     
@@ -338,4 +346,4 @@ var Song = {
 }
 
 
-client.login(process.env.BOT_TOKEN);
+client.login(BOT_TOKEN);
