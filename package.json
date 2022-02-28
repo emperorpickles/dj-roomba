@@ -6,7 +6,8 @@
     "node": "16.x"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js | ./node_modules/.bin/bunyan"
   },
   "dependencies": {
     "@discordjs/opus": "^0.5.3",
@@ -20,7 +21,11 @@
     "ffmpeg": "^0.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "libsodium-wrappers": "^0.7.9",
+    "youtube-sr": "^4.1.13",
     "ytdl-core": "^4.10.0",
     "ytpl": "^2.2.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
   }
 }

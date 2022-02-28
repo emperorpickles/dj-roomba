@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const voice = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
+const { YouTube, Video, Playlist } = require('youtube-sr');
 const Firestore = require('@google-cloud/firestore');
 const logger = require('./utils/bunyan');
 
@@ -61,6 +62,9 @@ client.on('messageCreate', async message => {
     } else if (command === 'clean') {
         clean(message);
         return;
+    } else if (command === 'search') {
+        ytSearch(message, args);
+        return;
     }
 });
 
@@ -110,6 +114,13 @@ async function execute(message, args, serverQueue) {
 
         try {
             await connectToChannel(voiceChannel);
+            if (songs.length > 0) {
+                let newSongs = '';
+                songs.forEach((song, i) => {
+                    newSongs += `\n${i+1}. ${song.title}`;
+                });
+                sendMessage(message, `\`\`\`Added to queue:${newSongs}\`\`\``);
+            }
             await play(message.guild, queueConstruct.songs.shift());
         } catch (err) {
             logger.error(err);
@@ -121,8 +132,8 @@ async function execute(message, args, serverQueue) {
         serverQueue.songs.push(...songs);
         if (songs.length > 0) {
             let newSongs = '';
-            songs.forEach(song => {
-                newSongs += `\n**${song.title}**`;
+            songs.forEach((song, i) => {
+                newSongs += `\n${i+1}. ${song.title}`;
             });
             return sendMessage(message, `\`\`\`Added to queue:${newSongs}\`\`\``);
         } else {
@@ -158,6 +169,7 @@ function skip(message, serverQueue) {
     }
     if (serverQueue) {
         play(message.guild, serverQueue.songs.shift());
+        logMessage(message);
     }
 }
 
@@ -179,11 +191,11 @@ function showQueue(message, serverQueue) {
         return sendMessage(message, 'You need to be in a voice channel to view the queue!');
     }
     if (serverQueue) {
-        songQueue = `\`\`\`Currently playing: **${serverQueue.currentSong.title}**`;
+        songQueue = `\`\`\`Currently playing: ${serverQueue.currentSong.title}`;
         if (serverQueue.songs.length > 0) {
             songQueue += '\n\nUp next:';
-            serverQueue.songs.forEach(song => {
-                songQueue += `\n**${song.title}**`;
+            serverQueue.songs.forEach((song, i) => {
+                songQueue += `\n${i+1}. ${song.title}`;
             });
         }
         return sendMessage(message, songQueue + '\`\`\`');
@@ -230,7 +242,8 @@ async function clean(message) {
     
     const collection = db.collection('guilds').doc(message.guildId).collection('messages');
     const messages = await collection.get();
-
+    
+    logger.info(`Cleaning up ${messages.docs.length} messages...`);
     await Promise.all(messages.docs.map(async (doc) => {
         const data = doc.data();
         const msg = await client.channels.cache.get(data.channelId).messages.fetch(doc.id)
@@ -239,10 +252,54 @@ async function clean(message) {
             await msg.delete().catch(err => { logger.error(err) });
         }
     }));
-
+    
     await new Promise((resolve, reject) => {
         deleteBatch(collection, resolve).catch(reject);
     });
+    logger.info('Finished cleaning messages');
+}
+
+// youtube search
+async function ytSearch(message, args) {
+    await logMessage(message);
+
+    const searchTerm = args.join(' ');
+    const serverQueue = queue.get(message.guild.id);
+    
+    const videos = await YouTube.search(searchTerm, { limit: 5, type: "all" });
+    
+    let titles = '';
+    videos.forEach((video, i) => {
+        titles += `\n${i+1}. ${video.title}`;
+        if (video instanceof Playlist) {
+            titles += ` (${video.videoCount} videos)`;
+        }
+    });
+
+    const filter = m => !isNaN(m.content);
+
+    message.reply(`Search results:\`\`\`${titles}\`\`\``, { fetchReply: true })
+        .then(res => {
+            message.channel.awaitMessages({ filter, max: 1, time: 30000, errors: ['time'] })
+                .then(collected => {
+                    const choice = videos[parseInt(collected.first().content) - 1];
+
+                    let videoUrl = '';
+                    if (choice instanceof Video) {
+                        videoUrl = `https://www.youtube.com/watch?v=${choice.id}`;
+                    } else {
+                        videoUrl = choice.url;
+                    }
+
+                    execute(message, [videoUrl], serverQueue);
+                    res.delete().catch(err => { logger.error(err) });
+                    collected.first().delete().catch(err => { logger.error('ERROR ytSearch().1:\n', err) });
+                })
+                .catch(collected => {
+                    res.delete().catch(err => { logger.error('ERROR ytSearch().2:\n', err) });
+                });
+        });
+        
 }
 
 
@@ -294,11 +351,10 @@ async function connectToChannel(channel) {
 
 // helper function for creating and logging sent messages
 async function sendMessage(message, text) {
-    const guildCollection = db.collection('guilds').doc(message.guildId);
-    await guildCollection.set({ name: message.guild.name });
+    const guildCollection = await createFSGuildConnection('messages', message);
 
     try {
-        const inMessage = guildCollection.collection('messages').doc(message.id);
+        const inMessage = guildCollection.doc(message.id);
         await inMessage.set({
             channelId: message.channelId,
             content: message.content,
@@ -308,7 +364,7 @@ async function sendMessage(message, text) {
     }
     try {
         const sentMessage = await message.channel.send(text);
-        const outMessage = guildCollection.collection('messages').doc(sentMessage.id);
+        const outMessage = guildCollection.doc(sentMessage.id);
         await outMessage.set({
             channelId: sentMessage.channelId,
             content: sentMessage.content,
@@ -317,6 +373,29 @@ async function sendMessage(message, text) {
         logger.error(err);
     }
 }
+
+// helper function that logs the given message into Firestore
+async function logMessage(message) {
+    const guildCollection = await createFSGuildConnection('messages', message);
+
+    try {
+        const messageDoc = guildCollection.doc(message.id);
+        await messageDoc.set({
+            channelId: message.channelId,
+            content: message.content,
+        });
+    } catch (err) {
+        logger.error('ERROR at logMessage():\n', err);
+    }
+}
+
+async function createFSGuildConnection(collection, message) {
+    const guildCollection = db.collection('guilds').doc(message.guildId);
+    await guildCollection.set({ name: message.guild.name });
+    
+    return guildCollection.collection(collection);
+}
+
 
 // song module
 var Song = {
