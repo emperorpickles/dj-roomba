@@ -7,4 +7,10 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+ARG BOT_TOKEN
+ARG PREFIX
+ENV BOT_TOKEN=$BOT_TOKEN
+ENV PREFIX=$PREFIX
+
 CMD [ "node", "index.js" ]
