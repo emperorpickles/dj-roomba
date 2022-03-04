@@ -2,7 +2,7 @@ const bunyan = require('bunyan');
 
 const {LoggingBunyan} = require('@google-cloud/logging-bunyan');
 var loggingOptions = {};
-if (process.env.GOOGLE_CLOUD_PROJECT) {
+if (process.env.GCP_PROJECT_ID) {
     const loggingBunyan = new LoggingBunyan();
 
     loggingOptions = {
