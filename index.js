@@ -1,10 +1,11 @@
-const Discord = require('discord.js');
+const { Client, Events, GatewayIntentBits } = require('discord.js');
 const voice = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const { YouTube, Video, Playlist } = require('youtube-sr');
 const Firestore = require('@google-cloud/firestore');
 const logger = require('./utils/bunyan');
+const { generateDependencyReport } = require('@discordjs/voice')
 
 // environment variables
 require('dotenv').config();
@@ -12,7 +13,11 @@ const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const PREFIX = process.env.PREFIX || '!';
 
-const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_VOICE_STATES'] });
+const client = new Client({ intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.MessageContent] });
 
 const queue = new Map();
 
@@ -25,11 +30,14 @@ const db = new Firestore({
 
 // announce once the bot is online
 client.once('ready', () => {
+    logger.info(generateDependencyReport());
     logger.info(`Ready! Logged in as ${client.user.username}`);
+    logger.info(`Active prefix: ${PREFIX}`);
 });
 
 // handles commands to bot
 client.on('messageCreate', async message => {
+    logger.info(message.content);
     if (message.author.bot) return;
     if (!message.content.startsWith(PREFIX)) return;
 
@@ -78,10 +86,11 @@ async function execute(message, args, serverQueue) {
     }
     
     // check if we have needed permissions
-    const permissions = voiceChannel.permissionsFor(message.client.user);
-    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-        return sendMessage(message, 'I need permissions to join and speak in your voice channel!');
-    }
+    // -- need to fix permissions check to use new GatewayIntentBits --
+    // const permissions = voiceChannel.permissionsFor(message.client.user);
+    // if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+    //     return sendMessage(message, 'I need permissions to join and speak in your voice channel!');
+    // }
 
     // create song from youtube link
     let songs = [];
