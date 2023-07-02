@@ -1,11 +1,15 @@
-const { Client, Events, GatewayIntentBits } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { generateDependencyReport } = require('@discordjs/voice')
 const voice = require('@discordjs/voice');
+const Firestore = require('@google-cloud/firestore');
+
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const { YouTube, Video, Playlist } = require('youtube-sr');
-const Firestore = require('@google-cloud/firestore');
+
 const logger = require('./utils/bunyan');
-const { generateDependencyReport } = require('@discordjs/voice')
 
 // environment variables
 require('dotenv').config();
@@ -17,23 +21,43 @@ const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.MessageContent] });
+    GatewayIntentBits.MessageContent]
+});
 
-const queue = new Map();
-
+const queue = new Map(); // can maybe add this as a parameter to the client instance
 
 // establish Firestore db connection
 const db = new Firestore({
     projectId: GCP_PROJECT_ID,
 })
 
+client.commands = new Collection();
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-// announce once the bot is online
-client.once('ready', () => {
-    logger.info(generateDependencyReport());
-    logger.info(`Ready! Logged in as ${client.user.username}`);
-    logger.info(`Active prefix: ${PREFIX}`);
-});
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    // set a new item in the Collection with command name as the key and the exported module as the value
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+    } else {
+        logger.info(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+    }
+}
+
+const eventsPath = path.join(__dirname, 'events');
+const eventsFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventsFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args));
+    }
+}
 
 // handles commands to bot
 client.on('messageCreate', async message => {
