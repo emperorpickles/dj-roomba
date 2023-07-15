@@ -23,14 +23,16 @@ const client = new Client({ intents: [
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent]
 });
+client.guildQueues = new Collection();
 
-const queue = new Map(); // can maybe add this as a parameter to the client instance
+// const queue = new Map(); // can maybe add this as a parameter to the client instance
 
 // establish Firestore db connection
 const db = new Firestore({
     projectId: GCP_PROJECT_ID,
 })
 
+// slash command handler
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -46,6 +48,7 @@ for (const file of commandFiles) {
     }
 }
 
+// events handler
 const eventsPath = path.join(__dirname, 'events');
 const eventsFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
@@ -58,48 +61,6 @@ for (const file of eventsFiles) {
         client.on(event.name, (...args) => event.execute(...args));
     }
 }
-
-// handles commands to bot
-client.on('messageCreate', async message => {
-    logger.info(message.content);
-    if (message.author.bot) return;
-    if (!message.content.startsWith(PREFIX)) return;
-
-    const serverQueue = queue.get(message.guild.id);
-    
-    const args = message.content.slice(1).split(/ +/);
-    const command = args.shift().toLowerCase();
-
-    if (command === 'play' || command === 'p') {
-        if (args.length === 0) {
-            return sendMessage(message, 'Please include a Youtube link after the !play command');
-        }
-        execute(message, args, serverQueue);
-        return;
-    } else if (command === 'skip' || command === 's') {
-        skip(message, serverQueue);
-        return;
-    } else if (command === 'stop' || command === 'clear') {
-        stop(message, serverQueue);
-        return;
-    } else if (command === 'queue' || command === 'q') {
-        showQueue(message, serverQueue);
-        return;
-    } else if (command === 'playskip' || command === 'ps') {
-        if (args.length === 0) {
-            return sendMessage(message, 'Please include a Youtube link after the !playskip command');
-        }
-        playSkip(message, args, serverQueue);
-        return;
-    } else if (command === 'clean') {
-        clean(message);
-        return;
-    } else if (command === 'search') {
-        ytSearch(message, args);
-        return;
-    }
-});
-
 
 // primary function, handles adding songs to queue
 async function execute(message, args, serverQueue) {
