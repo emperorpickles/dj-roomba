@@ -19,7 +19,7 @@
     "dotenv": "^16.3.1",
     "sodium": "^3.0.2",
     "youtube-sr": "^4.1.13",
-    "ytdl-core": "^4.11.4",
+    "ytdl-core": "^4.11.5",
     "ytpl": "^2.2.3"
   },
   "devDependencies": {
