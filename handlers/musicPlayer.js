@@ -1,53 +1,39 @@
-const { joinVoiceChannel, getVoiceConnection, createAudioPlayer } = require('@discordjs/voice');
-const { Queue } = require('../classes/Queue');
+const guilds = require('./guilds');
+const logger = require('../utils/bunyan');
 
-function getQueue(interaction) {
-    const queues = interaction.client.guildQueues;
-    let guildQueue = queues.get(interaction.guildId);
-
-    if (!guildQueue) {
-        guildQueue = new Queue(interaction)
-        queues.set(interaction.guildId, guildQueue)
-    }
-
-    return guildQueue;
-}
-
-function getAudioPlayer(guildQueue) {
-    if (!guildQueue.audioPlayer) {
-        const audioPlayer = createAudioPlayer();
-        guildQueue.audioPlayer = audioPlayer;
-        return audioPlayer;
-    } else {
-        return guildQueue.audioPlayer;
-    }
-}
-
-function voiceConnection(interaction) {
-    let connection = getVoiceConnection(interaction.guildId);
-    if (!connection) {
-        connection = joinVoiceChannel({
-            channelId: interaction.channelId,
-            guildId: interaction.guildId,
-            adapterCreator: interaction.guild.voiceAdapterCreator,
-        });
-    }
-    return connection;
-}
-
-async function play(interaction, songs) {
-    const guildQueue = getQueue(interaction);
-    const audioPlayer = getAudioPlayer(guildQueue);
-    const connection = voiceConnection(interaction);
-
-    if (!guildQueue.currentSong) {
-        
-    }
+function addSongToQueue(interaction, songs) {
+    logger.debug(songs);
+    logger.debug(interaction.client);
+    const guildQueue = guilds.getQueue(interaction);
     guildQueue.songs.push(...songs);
+    if (!guildQueue.currentSong) {
+        // new queue, add first song in queue to currentSong
+        guildQueue.currentSong = guildQueue.songs.shift();
+    };
+};
+
+async function play(interaction) {
+    const guildQueue = guilds.getQueue(interaction);
+    const guildAudioPlayer = guilds.getAudioPlayer(guildQueue);
+    const connection = guilds.voiceConnection(interaction);
+
+    guildAudioPlayer.play(guildQueue.currentSong.resource);
+    guildQueue.currentSong.resource.on('finish', () => {
+        guildQueue.currentSong = null;
+        if (guildQueue.songs.length > 0) {
+            guildQueue.currentSong = guildQueue.songs.shift();
+            guildAudioPlayer.play(guildQueue.currentSong.resource);
+        } else {
+            connection.destroy();
+        }
+    });
 }
 
+
+
+// code to be rewritten
 // create a new song queue for guild
-if (!guildQueue) {
+/* if (!guildQueue) {
     const audioPlayer = voice.createAudioPlayer();
 
     audioPlayer.on('error', error => {
@@ -94,6 +80,9 @@ else {
     } else {
         return sendMessage(message, `**${songs[0].title}** has been added to the queue`);
     }
-}
+} */
 
-module.exports = {play}
+module.exports = {
+    addSongToQueue,
+    play,
+}

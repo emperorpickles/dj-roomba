@@ -1,5 +1,7 @@
 const { SlashCommandBuilder, InteractionCollector } = require('discord.js');
 const player = require('../handlers/musicPlayer');
+const youtube = require('../handlers/youtube');
+const logger = require('../utils/bunyan');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,23 +21,22 @@ module.exports = {
 
         const url = interaction.options.getString('url');
         // get songs from youtube link
-        let songs = [];
         try {
-            songs = await createSongsFromUrl(url);
+            songs = await youtube.createSongsFromUrl(url);
         } catch (err) {
+            logger.error(err);
             return await interaction.reply('Please provide a valid YouTube link!');
         }
 
-        player.play(interaction, songs);
-
-        if (songs.length > 0) {
-            let newSongs = '';
-            songs.forEach((song, i) => {
-                newSongs += `\n${i+1}. ${song.title}`;
-            });
-            return await interaction.reply(`\`\`\`Added to queue:${newSongs}\`\`\``);
-        } else {
-            return await interaction.reply(`**${songs[0].title}** has been added to the queue`);
+        // add songs to guild queue
+        try {
+            logger.debug(songs);
+            player.addSongToQueue(interaction, songs);
+        } catch (err) {
+            logger.error(err);
+            return await interaction.reply('Error adding song to queue.');
         }
-    },
-};
+
+        await player.play(interaction);
+    }
+}

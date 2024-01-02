@@ -5,7 +5,7 @@ module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
         if (!interaction.isChatInputCommand()) return;
-        logger.info(interaction);
+        logger.debug(interaction);
 
         const command = interaction.client.commands.get(interaction.commandName);
 

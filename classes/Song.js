@@ -7,6 +7,27 @@ module.exports = class Song {
         this.url = url;
     }
 
+    get songInfo() {
+        return this._songInfo;
+    }
+    set songInfo(newSongInfo) {
+        this._songInfo = newSongInfo;
+    }
+
+    get title() {
+        return this._title;
+    }
+    set title(newTitle) {
+        this._title = newTitle;
+    }
+
+    get url() {
+        return this._url;
+    }
+    set url(newUrl) {
+        this._url = newUrl;
+    }
+
     static async newSong(newUrl) {
         const songInfo = await ytdl.getInfo(newUrl);
         const title = songInfo.videoDetails.title;
