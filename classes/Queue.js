@@ -1,3 +1,5 @@
+const { createAudioPlayer } = require('@discordjs/voice');
+
 module.exports = class Queue {
     constructor(interaction, audioPlayer = null, songs = [], currentSong = null) {
         this.interaction = interaction,
@@ -32,5 +34,13 @@ module.exports = class Queue {
     }
     set currentSong(newCurrentSong) {
         this._currentSong = newCurrentSong;
+    }
+
+    static newQueue(interaction) {
+        const audioPlayer = createAudioPlayer();
+        const songs = [];
+        const currentSong = null;
+
+        return new Queue(interaction, audioPlayer, songs, currentSong);
     }
 }

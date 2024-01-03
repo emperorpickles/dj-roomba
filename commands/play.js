@@ -19,6 +19,8 @@ module.exports = {
             return await interaction.reply('You need to be in a voice channel!');
         }
 
+        await interaction.reply('Adding song(s) to queue...');
+
         const url = interaction.options.getString('url');
         // get songs from youtube link
         try {
@@ -37,6 +39,8 @@ module.exports = {
             return await interaction.reply('Error adding song to queue.');
         }
 
+        await interaction.followUp(`Added ${songs[0].title} to the queue.`);
+ 
         await player.play(interaction);
     }
 }

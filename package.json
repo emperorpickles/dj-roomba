@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node index.js | ./node_modules/.bin/bunyan",
-    "dev": "nodemon index.js | ./node_modules/.bin/bunyan"
+    "dev": "nodemon index.js --ext js --exec | ./node_modules/.bin/bunyan"
   },
   "dependencies": {
     "@discordjs/opus": "^0.9.0",

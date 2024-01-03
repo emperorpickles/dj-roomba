@@ -62,6 +62,10 @@ for (const file of eventsFiles) {
     }
 }
 
+module.exports.client = client;
+
+client.login(BOT_TOKEN);
+
 // primary function, handles adding songs to queue
 async function execute(message, args, serverQueue) {
     // get users voice channel
@@ -412,6 +416,3 @@ var Song = {
         return resource;
     }
 }
-
-
-client.login(BOT_TOKEN);

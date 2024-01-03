@@ -1,10 +1,12 @@
 const ytdl = require('ytdl-core');
+const voice = require('@discordjs/voice');
 
 module.exports = class Song {
     constructor(songInfo, title, url) {
         this.songInfo = songInfo;
         this.title = title;
         this.url = url;
+        this.resource = this.getAudioResource();
     }
 
     get songInfo() {
@@ -28,6 +30,13 @@ module.exports = class Song {
         this._url = newUrl;
     }
 
+    get resource() {
+        return this._resource;
+    }
+    set resource(newResource) {
+        this._resource = newResource;
+    }
+
     static async newSong(newUrl) {
         const songInfo = await ytdl.getInfo(newUrl);
         const title = songInfo.videoDetails.title;
@@ -42,9 +51,9 @@ module.exports = class Song {
             const format = ytdl.chooseFormat(this.songInfo.formats, { quality: [95,94,93] });
             stream = ytdl.downloadFromInfo(this.songInfo, format);
         } else {
-            stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly' });
+            stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly', highWaterMark: 1<<25 });
         }
-        resource = voice.createAudioResource(stream, { inlineVolume: true });
+        const resource = voice.createAudioResource(stream, { inlineVolume: true });
         resource.volume.setVolume(0.2);
         return resource;
     }

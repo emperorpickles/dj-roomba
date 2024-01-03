@@ -1,30 +1,34 @@
 const guilds = require('./guilds');
 const logger = require('../utils/bunyan');
+const { AudioPlayerStatus } = require('@discordjs/voice');
 
 function addSongToQueue(interaction, songs) {
-    logger.debug(songs);
-    logger.debug(interaction.client);
     const guildQueue = guilds.getQueue(interaction);
     guildQueue.songs.push(...songs);
     if (!guildQueue.currentSong) {
         // new queue, add first song in queue to currentSong
         guildQueue.currentSong = guildQueue.songs.shift();
     };
+    logger.info(`Current song queue ${guildQueue.songs} in ${interaction.guild.name}`);
 };
 
 async function play(interaction) {
     const guildQueue = guilds.getQueue(interaction);
     const guildAudioPlayer = guilds.getAudioPlayer(guildQueue);
-    const connection = guilds.voiceConnection(interaction);
+    await guilds.createVoiceConnection(interaction);
+
+    logger.info(`Current song ${guildQueue.currentSong.title} in ${interaction.guild.name}`);
 
     guildAudioPlayer.play(guildQueue.currentSong.resource);
-    guildQueue.currentSong.resource.on('finish', () => {
+    guilds.getGuildVoiceConnection(interaction).subscribe(guildAudioPlayer);
+
+    guildAudioPlayer.on(AudioPlayerStatus.Idle, () => {
         guildQueue.currentSong = null;
         if (guildQueue.songs.length > 0) {
             guildQueue.currentSong = guildQueue.songs.shift();
             guildAudioPlayer.play(guildQueue.currentSong.resource);
         } else {
-            connection.destroy();
+            guilds.destroyVoiceConnection(interaction);
         }
     });
 }

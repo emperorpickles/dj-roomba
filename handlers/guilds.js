@@ -1,15 +1,17 @@
-const { joinVoiceChannel, getVoiceConnection, createAudioPlayer } = require('@discordjs/voice');
-const { Queue } = require('../classes/Queue');
+const { joinVoiceChannel, getVoiceConnection, createAudioPlayer, VoiceConnectionStatus } = require('@discordjs/voice');
+const Queue = require('../classes/Queue');
+const index = require('../index');
 const logger = require('../utils/bunyan');
 
 function getQueue(interaction) {
-    logger.debug(interaction.client);
-    const queues = interaction.client.guildQueues;
+    logger.debug(index);
+    const queues = index.client.guildQueues;
+    logger.debug('GUILD QUEUES: ' + queues);
     let guildQueue = queues.get(interaction.guildId);
 
     if (!guildQueue) {
-        guildQueue = new Queue(interaction)
-        queues.set(interaction.guildId, guildQueue)
+        guildQueue = Queue.newQueue(interaction);
+        queues.set(interaction.guildId, guildQueue);
     }
 
     return guildQueue;
@@ -25,16 +27,28 @@ function getAudioPlayer(guildQueue) {
     }
 }
 
-function voiceConnection(interaction) {
-    let connection = getVoiceConnection(interaction.guildId);
-    if (!connection) {
-        connection = joinVoiceChannel({
-            channelId: interaction.channelId,
-            guildId: interaction.guildId,
-            adapterCreator: interaction.guild.voiceAdapterCreator,
-        });
-    }
+async function createVoiceConnection(interaction) {
+    const connection = joinVoiceChannel({
+        channelId: interaction.member.voice.channelId,
+        guildId: interaction.guildId,
+        adapterCreator: interaction.guild.voiceAdapterCreator,
+    });
+
+    connection.on(VoiceConnectionStatus.Ready, () => {
+        logger.info(`Joined ${interaction.member.voice.channel.name} in ${interaction.guild.name}`);
+    });
+}
+
+function getGuildVoiceConnection(interaction) {
+    const connection = getVoiceConnection(interaction.guildId);
     return connection;
+}
+
+function destroyVoiceConnection(interaction) {
+    const connection = getVoiceConnection(interaction.guildId);
+    if (connection) {
+        connection.destroy();
+    }
 }
 
 // getQueue - returns the queue for the guild. If no queue exists, creates a new one
@@ -43,5 +57,7 @@ function voiceConnection(interaction) {
 module.exports = {
     getQueue,
     getAudioPlayer,
-    voiceConnection,
+    createVoiceConnection,
+    getGuildVoiceConnection,
+    destroyVoiceConnection,
 };
