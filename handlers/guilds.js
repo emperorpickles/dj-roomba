@@ -4,9 +4,7 @@ const index = require('../index');
 const logger = require('../utils/bunyan');
 
 function getQueue(interaction) {
-    logger.debug(index);
     const queues = index.client.guildQueues;
-    logger.debug('GUILD QUEUES: ' + queues);
     let guildQueue = queues.get(interaction.guildId);
 
     if (!guildQueue) {
@@ -35,7 +33,7 @@ async function createVoiceConnection(interaction) {
     });
 
     connection.on(VoiceConnectionStatus.Ready, () => {
-        logger.info(`Joined ${interaction.member.voice.channel.name} in ${interaction.guild.name}`);
+        logger.info(`Joined voice channel: '${interaction.member.voice.channel.name}' in '${interaction.guild.name}'`);
     });
 }
 
@@ -53,7 +51,9 @@ function destroyVoiceConnection(interaction) {
 
 // getQueue - returns the queue for the guild. If no queue exists, creates a new one
 // getAudioPlayer - returns the audio player for the guild. If no audio player exists, creates a new one
-// voiceConnection - returns the voice connection for the guild. If no voice connection exists, creates a new one
+// createVoiceConnection - creates a voice connection for the guild
+// getGuildVoiceConnection - returns the voice connection for the guild
+// destroyVoiceConnection - destroys the voice connection for the guild
 module.exports = {
     getQueue,
     getAudioPlayer,

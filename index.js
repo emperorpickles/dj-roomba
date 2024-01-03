@@ -15,7 +15,6 @@ const logger = require('./utils/bunyan');
 require('dotenv').config();
 const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const PREFIX = process.env.PREFIX || '!';
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
@@ -24,8 +23,6 @@ const client = new Client({ intents: [
     GatewayIntentBits.MessageContent]
 });
 client.guildQueues = new Collection();
-
-// const queue = new Map(); // can maybe add this as a parameter to the client instance
 
 // establish Firestore db connection
 const db = new Firestore({

@@ -18,28 +18,28 @@ module.exports = {
         if (!voiceChannel) {
             return await interaction.reply('You need to be in a voice channel!');
         }
-
         await interaction.reply('Adding song(s) to queue...');
 
-        const url = interaction.options.getString('url');
         // get songs from youtube link
+        const url = interaction.options.getString('url');
         try {
             songs = await youtube.createSongsFromUrl(url);
         } catch (err) {
-            logger.error(err);
+            logger.error('ERROR at play/1:\n', err);
             return await interaction.reply('Please provide a valid YouTube link!');
         }
 
         // add songs to guild queue
+        let newSongs = '';
         try {
             logger.debug(songs);
-            player.addSongToQueue(interaction, songs);
+            newSongs = player.addSongToQueue(interaction, songs);
         } catch (err) {
-            logger.error(err);
+            logger.error('ERROR at play/2:\n', err);
             return await interaction.reply('Error adding song to queue.');
         }
 
-        await interaction.followUp(`Added ${songs[0].title} to the queue.`);
+        await interaction.editReply(`\`\`\`Added to queue:${newSongs}\`\`\``);
  
         await player.play(interaction);
     }
