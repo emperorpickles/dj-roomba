@@ -420,7 +420,7 @@ var Song = {
             const format = ytdl.chooseFormat(this.songInfo.formats, { quality: [95,94,93] });
             stream = ytdl.downloadFromInfo(this.songInfo, format);
         } else {
-            stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly' });
+            stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly', highWaterMark: 1<<25 });
         }
         resource = voice.createAudioResource(stream, { inlineVolume: true });
         resource.volume.setVolume(0.2);
