@@ -34,6 +34,7 @@ async function createVoiceConnection(interaction) {
 
     connection.on(VoiceConnectionStatus.Ready, () => {
         logger.info(`Joined voice channel: '${interaction.member.voice.channel.name}' in '${interaction.guild.name}'`);
+        return;
     });
 }
 

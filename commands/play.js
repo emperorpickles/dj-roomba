@@ -11,7 +11,6 @@ module.exports = {
             option.setName('url')
                 .setDescription('URL for the YouTube video/playlist.')
                 .setRequired(true)),
-
     async execute(interaction) {
         // get users voice channel
         const voiceChannel = interaction.member.voice.channel;
@@ -42,5 +41,5 @@ module.exports = {
         await interaction.editReply(`\`\`\`Added to queue:${newSongs}\`\`\``);
  
         await player.play(interaction);
-    }
-}
+    },
+};

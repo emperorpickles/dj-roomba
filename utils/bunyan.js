@@ -17,6 +17,13 @@ if (process.env.GCP_PROJECT_ID) {
         name: 'dj-roomba',
         streams: [
             {stream: process.stdout, level: 'debug'},
+            {
+                type: 'rotating-file',
+                path: './logs/dj-roomba.log',
+                period: '1d',
+                count: 3,
+                level: 'debug'
+            },
         ],
     }
 }

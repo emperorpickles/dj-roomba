@@ -23,6 +23,18 @@ function addSongToQueue(interaction, songs) {
     return newSongs;
 };
 
+function getSongQueueString(guildQueue) {
+    let songQueueString = '';
+    if (guildQueue.songs.length === 0) {
+        songQueueString = '\nNo songs in queue.'
+    } else {
+        guildQueue.songs.forEach((song, i) => {
+            songQueueString += `\n${i+1}. ${song.title}`;
+        });
+    }
+    return songQueueString;
+};
+
 async function play(interaction) {
     // get guild queue and audio player and create voice connection
     const guildQueue = guilds.getQueue(interaction);
@@ -48,9 +60,19 @@ async function play(interaction) {
     });
 };
 
+function clearQueue(interaction) {
+    const guildQueue = guilds.getQueue(interaction);
+    guildQueue.songs = [];
+    guildQueue.currentSong = null;
+}
+
 // addSongToQueue - adds songs to the guild queue
+// getSongQueueString - returns a string of the guild queue
 // play - plays the current song in the guild queue
+// clearQueue - clears the guild queue
 module.exports = {
     addSongToQueue,
+    getSongQueueString,
     play,
+    clearQueue,
 }
