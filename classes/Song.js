@@ -1,4 +1,4 @@
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const voice = require('@discordjs/voice');
 
 module.exports = class Song {
@@ -47,14 +47,37 @@ module.exports = class Song {
 
     getAudioResource() {
         let stream = null;
+    
         if (this.songInfo.videoDetails.isLive) {
-            const format = ytdl.chooseFormat(this.songInfo.formats, { quality: [95,94,93] });
-            stream = ytdl.downloadFromInfo(this.songInfo, format);
+            // Grab best audio format available for live streams
+            const format = ytdl.chooseFormat(this.songInfo.formats, { 
+                filter: 'audioonly' 
+            });
+    
+            if (!format || !format.url) {
+                throw new Error('No valid audio format found for livestream');
+            }
+    
+            stream = ytdl.downloadFromInfo(this.songInfo, {
+                format,
+                highWaterMark: 1 << 25,
+                liveBuffer: 4000, // helps with livestream buffering
+                dlChunkSize: 0,
+                begin: '0s'
+            });
         } else {
-            stream = ytdl.downloadFromInfo(this.songInfo, { filter: 'audioonly', highWaterMark: 1<<25 });
+            stream = ytdl.downloadFromInfo(this.songInfo, { 
+                filter: 'audioonly', 
+                highWaterMark: 1 << 25 
+            });
         }
-        const resource = voice.createAudioResource(stream, { inlineVolume: true });
+    
+        const resource = voice.createAudioResource(stream, {
+            inputType: voice.StreamType.Arbitrary,
+            inlineVolume: true
+        });
         resource.volume.setVolume(0.2);
         return resource;
     }
+    
 }

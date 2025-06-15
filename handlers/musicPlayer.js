@@ -48,13 +48,14 @@ async function play(interaction) {
     guilds.getGuildVoiceConnection(interaction).subscribe(guildAudioPlayer);
 
     // when audio player is idle, play next song in queue
-    guildAudioPlayer.on(AudioPlayerStatus.Idle, () => {
+    guildAudioPlayer.on(AudioPlayerStatus.Idle, async () => {
         guildQueue.currentSong = null;
         if (guildQueue.songs.length > 0) {
             guildQueue.currentSong = guildQueue.songs.shift();
             logger.info(`Now playing: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
-            guildAudioPlayer.play(guildQueue.currentSong.resource);
+            await guildAudioPlayer.play(guildQueue.currentSong.resource);
         } else {
+            logger.info(`Queue empty in '${interaction.guild.name}', leaving VC`);
             guilds.destroyVoiceConnection(interaction);
         }
     });

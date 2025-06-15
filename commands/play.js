@@ -25,7 +25,7 @@ module.exports = {
             songs = await youtube.createSongsFromUrl(url);
         } catch (err) {
             logger.error('ERROR at play/1:\n', err);
-            return await interaction.reply('Please provide a valid YouTube link!');
+            return await interaction.editReply('Please provide a valid YouTube link!');
         }
 
         // add songs to guild queue
@@ -35,7 +35,7 @@ module.exports = {
             newSongs = player.addSongToQueue(interaction, songs);
         } catch (err) {
             logger.error('ERROR at play/2:\n', err);
-            return await interaction.reply('Error adding song to queue.');
+            return await interaction.editReply('Error adding song to queue.');
         }
 
         await interaction.editReply(`\`\`\`Added to queue:${newSongs}\`\`\``);
