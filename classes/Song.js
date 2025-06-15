@@ -51,6 +51,7 @@ module.exports = class Song {
 
     getAudioResource(startTime = 0) {
         const log = logger.child({ fn: 'getAudioResource' });
+
         let stream = null;
     
         log.debug({ startTime }, 'Creating audio resource');
