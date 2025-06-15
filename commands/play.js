@@ -1,7 +1,7 @@
-const { SlashCommandBuilder, InteractionCollector } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const player = require('../handlers/musicPlayer');
 const youtube = require('../handlers/youtube');
-const logger = require('../utils/bunyan');
+const logger = require('../utils/bunyan').child({ module: 'commands/play' });
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,6 +12,8 @@ module.exports = {
                 .setDescription('URL for the YouTube video/playlist.')
                 .setRequired(true)),
     async execute(interaction) {
+        const log = logger.child({ fn: 'execute' });
+
         // get users voice channel
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
@@ -24,17 +26,17 @@ module.exports = {
         try {
             songs = await youtube.createSongsFromUrl(url);
         } catch (err) {
-            logger.error('ERROR at play/1:\n', err);
+            log.error({ err }, 'Failed to create songs from URL');
             return await interaction.editReply('Please provide a valid YouTube link!');
         }
 
         // add songs to guild queue
         let newSongs = '';
         try {
-            logger.debug(songs);
+            log.debug({ songs }, 'Songs retrieved from YouTube');
             newSongs = player.addSongToQueue(interaction, songs);
         } catch (err) {
-            logger.error('ERROR at play/2:\n', err);
+            log.error({ err }, 'Failed to add songs to queue');
             return await interaction.editReply('Error adding song to queue.');
         }
 
