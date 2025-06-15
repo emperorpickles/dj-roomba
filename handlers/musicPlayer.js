@@ -48,9 +48,10 @@ async function play(interaction) {
         guildAudioPlayer.on('error', async (error) => {
             logger.error(`Audio player error in '${interaction.guild.name}': ${error.message}`);
             try {
-                const played = error.resource?.playbackDuration || 0;
                 const currentSong = guildQueue.currentSong;
-                if (!currentSong) return;
+                if (!currentSong || !currentSong.resource) return;
+                // Use the playback duration from the current resource
+                const played = currentSong.resource.playbackDuration || 0;
                 // recreate audio resource starting at the last played position
                 const newResource = currentSong.getAudioResource(played);
                 currentSong.resource = newResource;
