@@ -1,5 +1,6 @@
 const ytdl = require('@distube/ytdl-core');
 const voice = require('@discordjs/voice');
+const logger = require('../utils/bunyan').child({ module: 'classes/Song' });
 
 module.exports = class Song {
     constructor(songInfo, title, url) {
@@ -38,16 +39,21 @@ module.exports = class Song {
     }
 
     static async newSong(newUrl) {
+        const log = logger.child({ fn: 'newSong' });
+        log.debug({ url: newUrl }, 'Fetching song info');
         const songInfo = await ytdl.getInfo(newUrl);
         const title = songInfo.videoDetails.title;
         const url = songInfo.videoDetails.video_url;
 
+        log.info(`Created song '${title}'`);
         return new Song(songInfo, title, url);
     }
 
-    getAudioResource() {
+    getAudioResource(startTime = 0) {
+        const log = logger.child({ fn: 'getAudioResource' });
         let stream = null;
     
+        log.debug({ startTime }, 'Creating audio resource');
         if (this.songInfo.videoDetails.isLive) {
             // Grab best audio format available for live streams
             const format = ytdl.chooseFormat(this.songInfo.formats, { 
@@ -63,12 +69,13 @@ module.exports = class Song {
                 highWaterMark: 1 << 25,
                 liveBuffer: 4000, // helps with livestream buffering
                 dlChunkSize: 0,
-                begin: '0s'
+                begin: `${Math.floor(startTime)}ms`
             });
         } else {
-            stream = ytdl.downloadFromInfo(this.songInfo, { 
-                filter: 'audioonly', 
-                highWaterMark: 1 << 25 
+            stream = ytdl.downloadFromInfo(this.songInfo, {
+                filter: 'audioonly',
+                highWaterMark: 1 << 25,
+                begin: `${Math.floor(startTime)}ms`
             });
         }
     
@@ -77,7 +84,9 @@ module.exports = class Song {
             inlineVolume: true
         });
         resource.volume.setVolume(0.2);
+        log.debug('Audio resource created');
         return resource;
     }
     
 }
+

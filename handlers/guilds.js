@@ -1,7 +1,7 @@
 const { joinVoiceChannel, getVoiceConnection, createAudioPlayer, VoiceConnectionStatus } = require('@discordjs/voice');
 const Queue = require('../classes/Queue');
 const index = require('../index');
-const logger = require('../utils/bunyan');
+const logger = require('../utils/bunyan').child({ module: 'handlers/guilds' });
 
 function getQueue(interaction) {
     const queues = index.client.guildQueues;
@@ -10,6 +10,7 @@ function getQueue(interaction) {
     if (!guildQueue) {
         guildQueue = Queue.newQueue(interaction);
         queues.set(interaction.guildId, guildQueue);
+        logger.info({ fn: 'getQueue' }, `Created queue for guild ${interaction.guildId}`);
     }
 
     return guildQueue;
@@ -32,8 +33,9 @@ async function createVoiceConnection(interaction) {
         adapterCreator: interaction.guild.voiceAdapterCreator,
     });
 
+    const log = logger.child({ fn: 'createVoiceConnection' });
     connection.on(VoiceConnectionStatus.Ready, () => {
-        logger.info(`Joined voice channel: '${interaction.member.voice.channel.name}' in '${interaction.guild.name}'`);
+        log.info(`Joined voice channel: '${interaction.member.voice.channel.name}' in '${interaction.guild.name}'`);
         return;
     });
 }
@@ -47,6 +49,7 @@ function destroyVoiceConnection(interaction) {
     const connection = getVoiceConnection(interaction.guildId);
     if (connection) {
         connection.destroy();
+        logger.info({ fn: 'destroyVoiceConnection' }, `Destroyed voice connection for guild ${interaction.guildId}`);
     }
 }
 
