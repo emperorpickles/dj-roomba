@@ -87,6 +87,7 @@ function clearQueue(interaction) {
     const guildQueue = guilds.getQueue(interaction);
     guildQueue.songs = [];
     guildQueue.currentSong = null;
+    logger.info({ fn: 'clearQueue' }, `Cleared queue in guild ${interaction.guildId}`);
 }
 
 // addSongToQueue - adds songs to the guild queue

@@ -49,4 +49,5 @@ for (const file of eventsFiles) {
 
 module.exports.client = client;
 
+logger.info({ fn: 'login' }, 'Logging in');
 client.login(BOT_TOKEN);

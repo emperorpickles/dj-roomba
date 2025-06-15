@@ -10,6 +10,7 @@ function getQueue(interaction) {
     if (!guildQueue) {
         guildQueue = Queue.newQueue(interaction);
         queues.set(interaction.guildId, guildQueue);
+        logger.info({ fn: 'getQueue' }, `Created queue for guild ${interaction.guildId}`);
     }
 
     return guildQueue;
@@ -48,6 +49,7 @@ function destroyVoiceConnection(interaction) {
     const connection = getVoiceConnection(interaction.guildId);
     if (connection) {
         connection.destroy();
+        logger.info({ fn: 'destroyVoiceConnection' }, `Destroyed voice connection for guild ${interaction.guildId}`);
     }
 }
 
