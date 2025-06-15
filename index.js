@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 
-const logger = require('./utils/bunyan');
+const logger = require('./utils/bunyan').child({ module: 'index' });
 
 // environment variables
 require('dotenv').config();
@@ -28,7 +28,8 @@ for (const file of commandFiles) {
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
     } else {
-        logger.info(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        const log = logger.child({ fn: 'loadCommands' });
+        log.info(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
     }
 }
 

@@ -1,6 +1,6 @@
 const ytpl = require('ytpl');
 const youtube_sr = require('youtube-sr').default;
-const logger = require('../utils/bunyan');
+const logger = require('../utils/bunyan').child({ module: 'handlers/youtube' });
 const Song = require('../classes/Song');
 
 async function createSongsFromUrl(newUrl) {
@@ -25,8 +25,9 @@ async function createSongsFromUrl(newUrl) {
 };
 
 async function search(searchTerm) {
+    const log = logger.child({ fn: 'search' });
     const videos = await youtube_sr.search(searchTerm, { limit: 5 });
-    logger.debug(videos);
+    log.debug({ videos }, 'Search results from YouTube');
     const songs = new Array(videos.length);
     await Promise.all(videos.map(async (item) => {
         const song = await Song.newSong(item.url);

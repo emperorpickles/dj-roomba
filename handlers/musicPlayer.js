@@ -1,8 +1,9 @@
 const guilds = require('./guilds');
-const logger = require('../utils/bunyan');
+const logger = require('../utils/bunyan').child({ module: 'handlers/musicPlayer' });
 const { AudioPlayerStatus } = require('@discordjs/voice');
 
 function addSongToQueue(interaction, songs) {
+    const log = logger.child({ fn: 'addSongToQueue' });
     // get guild queue and add songs to queue
     const guildQueue = guilds.getQueue(interaction);
     guildQueue.songs.push(...songs);
@@ -13,7 +14,7 @@ function addSongToQueue(interaction, songs) {
         newSongs += `\n${i+1}. ${song.title}`;
     });
     
-    logger.info(`Added to queue: [${newSongs}\n] in ${interaction.guild.name}`);
+    log.info(`Added to queue: [${newSongs}\n] in ${interaction.guild.name}`);
     
     // new queue, add first song in queue to currentSong
     if (!guildQueue.currentSong) {
@@ -36,12 +37,33 @@ function getSongQueueString(guildQueue) {
 };
 
 async function play(interaction) {
+    const log = logger.child({ fn: 'play' });
+
     // get guild queue and audio player and create voice connection
     const guildQueue = guilds.getQueue(interaction);
     const guildAudioPlayer = guilds.getAudioPlayer(guildQueue);
     await guilds.createVoiceConnection(interaction);
 
-    logger.info(`Current song: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
+    log.info(`Current song: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
+
+    // attach error handler once to attempt restart on stream errors
+    if (guildAudioPlayer.listenerCount('error') === 0) {
+        guildAudioPlayer.on('error', async (error) => {
+            log.error(`Audio player error in '${interaction.guild.name}': ${error.message}`);
+            try {
+                const currentSong = guildQueue.currentSong;
+                if (!currentSong || !currentSong.resource) return;
+                // Use the playback duration from the current resource
+                const played = currentSong.resource.playbackDuration || 0;
+                // recreate audio resource starting at the last played position
+                const newResource = currentSong.getAudioResource(played);
+                currentSong.resource = newResource;
+                guildAudioPlayer.play(newResource);
+            } catch (err) {
+                log.error({ err }, 'Failed to restart stream');
+            }
+        });
+    }
 
     // play current song and subscribe voice connection to audio player
     guildAudioPlayer.play(guildQueue.currentSong.resource);
@@ -52,10 +74,10 @@ async function play(interaction) {
         guildQueue.currentSong = null;
         if (guildQueue.songs.length > 0) {
             guildQueue.currentSong = guildQueue.songs.shift();
-            logger.info(`Now playing: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
+            log.info(`Now playing: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
             await guildAudioPlayer.play(guildQueue.currentSong.resource);
         } else {
-            logger.info(`Queue empty in '${interaction.guild.name}', leaving VC`);
+            log.info(`Queue empty in '${interaction.guild.name}', leaving VC`);
             guilds.destroyVoiceConnection(interaction);
         }
     });
