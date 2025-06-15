@@ -3,20 +3,20 @@
   "description": "simple music streaming bot",
   "version": "2.0.0",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node index.js | ./node_modules/.bin/bunyan",
     "dev": "nodemon index.js --ext js --exec | ./node_modules/.bin/bunyan"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.9.0",
+    "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.16.0",
     "@distube/ytdl-core": "^4.16.12",
     "@google-cloud/firestore": "^7.11.1",
     "@google-cloud/logging-bunyan": "^5.1.0",
     "bunyan": "^1.8.15",
-    "discord.js": "^14.19.3",
+    "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
     "sodium": "^3.0.2",
     "youtube-sr": "^4.1.13",
