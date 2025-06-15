@@ -45,7 +45,7 @@ module.exports = class Song {
         return new Song(songInfo, title, url);
     }
 
-    getAudioResource() {
+    getAudioResource(startTime = 0) {
         let stream = null;
     
         if (this.songInfo.videoDetails.isLive) {
@@ -63,12 +63,13 @@ module.exports = class Song {
                 highWaterMark: 1 << 25,
                 liveBuffer: 4000, // helps with livestream buffering
                 dlChunkSize: 0,
-                begin: '0s'
+                begin: `${Math.floor(startTime)}ms`
             });
         } else {
-            stream = ytdl.downloadFromInfo(this.songInfo, { 
-                filter: 'audioonly', 
-                highWaterMark: 1 << 25 
+            stream = ytdl.downloadFromInfo(this.songInfo, {
+                filter: 'audioonly',
+                highWaterMark: 1 << 25,
+                begin: `${Math.floor(startTime)}ms`
             });
         }
     

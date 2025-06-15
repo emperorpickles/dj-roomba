@@ -43,6 +43,24 @@ async function play(interaction) {
 
     logger.info(`Current song: '${guildQueue.currentSong.title}' in '${interaction.guild.name}'`);
 
+    // attach error handler once to attempt restart on stream errors
+    if (guildAudioPlayer.listenerCount('error') === 0) {
+        guildAudioPlayer.on('error', async (error) => {
+            logger.error(`Audio player error in '${interaction.guild.name}': ${error.message}`);
+            try {
+                const played = error.resource?.playbackDuration || 0;
+                const currentSong = guildQueue.currentSong;
+                if (!currentSong) return;
+                // recreate audio resource starting at the last played position
+                const newResource = currentSong.getAudioResource(played);
+                currentSong.resource = newResource;
+                guildAudioPlayer.play(newResource);
+            } catch (err) {
+                logger.error('Failed to restart stream:', err);
+            }
+        });
+    }
+
     // play current song and subscribe voice connection to audio player
     guildAudioPlayer.play(guildQueue.currentSong.resource);
     guilds.getGuildVoiceConnection(interaction).subscribe(guildAudioPlayer);
